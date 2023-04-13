@@ -128,6 +128,9 @@ def mgmt_config_peer(uuid):
     
     if uuid in peers:
         if params["action"] == "delete":
+            for _, peer in peers.items():
+                if uuid in peer["peers"]:
+                    peer["peers"].pop(uuid)
             peers.pop(uuid)
             return jsonify({"status": "ok"}) 
         elif params["action"] == "modify":
