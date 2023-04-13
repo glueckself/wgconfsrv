@@ -1,0 +1,79 @@
+client:
+* local data (never sent to server):
+- private key
+- peer preshared keys (must be manually entered) ?
+-- cli tool that allows setting it over ssh to two hosts simulataniously
+
+* generate private key (never sent to server)
+* send public-key to server ("register")
+* fetch peers from server, configure them
+
+server:
+* receive pubkey upload -> create "peer" object
+* mgmt:
+- which peers are connected to which peers
+- peer-object: local address always in allowed ips for all fetches
+- peer-object->connections also include allowed ips (i.e. not all peers need to have all routes)
+- server generates psk and encrypts it with clients pubkey ?
+
+api:
+/host/register POST
+{"hostname": hostname, "publickey": pubkey, "endpoint": ip:port or "nat"}
+pending_peers.append(params)
+
+/host/config/$uuid GET
+{
+  "interface": {
+    "address": ip,
+    "mtu": mtu,
+  },
+  "peers": [
+    {
+      "id": uuid,
+      "hostname": hostname,
+      "pubkey": pubkey,
+      "encrypted_psk": psk,
+      "endpoint": ip:port or None
+      "keepalive":
+      "allowedips":
+    },
+    ...
+  ]
+}
+
+/mgmt/peers GET
+{
+  "peers": [
+    {
+      "id": uuid,
+      "status": "pending"|"accepted"
+      "hostname": hostname,
+      "endpoint": endpoint,
+      "peers": [peer_uuids...],
+    },
+    ...
+  ]
+}
+
+/mgmt/connect/$uuid POST
+{
+  "peers": [peer_uuids...],
+}
+for peer_uuid in params["peers"]:
+  if not peer_uuid in peer[uuid].peers:
+    psk = new_psk()
+    peers[uuid]["peers"][peer_uuid] = encrypt_psk(psk, peer[uuid].pubkey)
+    peers[peer_uuid]["peers"][uuid] = encrypt_psk(psk, peer[peer_uuid].pubkey)
+    
+for peer_uuid in peer[uuid].peers:
+  if not peer_uuid in params["peers"]:
+    peer[uuid].peers.pop(peer_uuid)
+    peer[peer_uuid].peers.pop(uuid)
+
+
+/mgmt/$uuid POST
+{
+  "action": "modify"|"accept"|"delete",
+  "address": ip
+  "peers": [peer_uuids...],
+}
